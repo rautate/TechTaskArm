@@ -1,0 +1,128 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: management-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: main-server-config
+  namespace: management-system
+data:
+  DATABASE_URL: "sqlite:///data/main_server.db"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: main-server-data
+  namespace: management-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: main-server
+  namespace: management-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: main-server
+  template:
+    metadata:
+      labels:
+        app: main-server
+    spec:
+      containers:
+      - name: main-server
+        image: management-system/main-server:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: PYTHONPATH
+          value: "/app"
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: main-server-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: main-server
+  namespace: management-system
+spec:
+  selector:
+    app: main-server
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: regular-node
+  namespace: management-system
+spec:
+  selector:
+    matchLabels:
+      app: regular-node
+  template:
+    metadata:
+      labels:
+        app: regular-node
+    spec:
+      hostNetwork: true
+      containers:
+      - name: regular-node
+        image: management-system/regular-node:latest
+        ports:
+        - containerPort: 8081
+        env:
+        - name: NODE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: MAIN_SERVER_URL
+          value: "http://main-server:8080"
+        volumeMounts:
+        - name: updates
+          mountPath: /opt/node-updates
+        - name: backups
+          mountPath: /opt/node-backups
+        - name: logs
+          mountPath: /var/log/node-agent
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      volumes:
+      - name: updates
+        hostPath:
+          path: /opt/node-updates
+      - name: backups
+        hostPath:
+          path: /opt/node-backups
+      - name: logs
+        hostPath:
+          path: /var/log/node-agent
+

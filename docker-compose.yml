@@ -1,0 +1,125 @@
+version: '3.8'
+
+services:
+  main-server:
+    build: 
+      context: ./main_server
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    container_name: main-server
+    ports:
+      - "8080:8080"
+    volumes:
+      - main_server_data:/app/data
+      - ./main_server.db:/app/main_server.db
+    environment:
+      - PYTHONPATH=/app
+    networks:
+      - management_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  regular-node-1:
+    build: 
+      context: ./regular_node
+      platforms:
+        - linux/arm64  # ARM Cortex-A55
+    container_name: regular-node-1
+    ports:
+      - "8081:8081"
+    volumes:
+      - node1_data:/opt/node-updates
+      - node1_backups:/opt/node-backups
+      - node1_logs:/var/log/node-agent
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - PYTHONPATH=/app
+      - NODE_ID=node-1
+      - ARCHITECTURE=arm64
+    networks:
+      - management_network
+    depends_on:
+      - main-server
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  regular-node-2:
+    build: 
+      context: ./regular_node
+      platforms:
+        - linux/arm64  # ARM Cortex-A55
+    container_name: regular-node-2
+    ports:
+      - "8082:8081"
+    volumes:
+      - node2_data:/opt/node-updates
+      - node2_backups:/opt/node-backups
+      - node2_logs:/var/log/node-agent
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - PYTHONPATH=/app
+      - NODE_ID=node-2
+      - ARCHITECTURE=arm64
+    networks:
+      - management_network
+    depends_on:
+      - main-server
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  regular-node-3:
+    build: 
+      context: ./regular_node
+      platforms:
+        - linux/arm64  # ARM Cortex-A55
+    container_name: regular-node-3
+    ports:
+      - "8083:8081"
+    volumes:
+      - node3_data:/opt/node-updates
+      - node3_backups:/opt/node-backups
+      - node3_logs:/var/log/node-agent
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - PYTHONPATH=/app
+      - NODE_ID=node-3
+      - ARCHITECTURE=arm64
+    networks:
+      - management_network
+    depends_on:
+      - main-server
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  main_server_data:
+  node1_data:
+  node1_backups:
+  node1_logs:
+  node2_data:
+  node2_backups:
+  node2_logs:
+  node3_data:
+  node3_backups:
+  node3_logs:
+
+networks:
+  management_network:
+    driver: bridge
