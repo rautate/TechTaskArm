@@ -48,8 +48,8 @@ This guide explains how to deploy the CoAP-based IoT update system across your A
 1. **Copy files to main server:**
    ```bash
    # On main server
-   scp -r main_server_coap/ user@main-server:/tmp/
-   scp deployment/coap/install_main_server.sh user@main-server:/tmp/
+   scp -r main_server_coap/ user@<MAIN_SERVER_IP>:/tmp/
+   scp deployment/coap/install_main_server.sh user@<MAIN_SERVER_IP>:/tmp/
    ```
 
 2. **Run main server installation:**
@@ -65,7 +65,7 @@ This guide explains how to deploy the CoAP-based IoT update system across your A
    sudo systemctl status main-server-coap
    
    # Check CoAP endpoint
-   coap-client -m get coap://localhost:5683/health
+   coap-client -m get coap://<MAIN_SERVER_IP>:5683/health
    ```
 
 ### **Step 2: Deploy Regular Nodes**
@@ -73,18 +73,18 @@ This guide explains how to deploy the CoAP-based IoT update system across your A
 1. **Copy files to each regular node:**
    ```bash
    # On each regular node
-   scp -r regular_node_coap/ user@node:/tmp/
-   scp deployment/coap/install_regular_node.sh user@node:/tmp/
+   scp -r regular_node_coap/ user@<NODE_IP>:/tmp/
+   scp deployment/coap/install_regular_node.sh user@<NODE_IP>:/tmp/
    ```
 
 2. **Run regular node installation:**
    ```bash
    # On each regular node
    sudo chmod +x /tmp/install_regular_node.sh
-   MAIN_SERVER_IP=192.168.1.100 sudo /tmp/install_regular_node.sh
+   MAIN_SERVER_IP=<MAIN_SERVER_IP> sudo /tmp/install_regular_node.sh
    ```
    
-   Replace `192.168.1.100` with your actual main server IP address.
+   Replace `<MAIN_SERVER_IP>` with your actual main server IP address.
 
 3. **Verify regular node:**
    ```bash
@@ -92,7 +92,7 @@ This guide explains how to deploy the CoAP-based IoT update system across your A
    sudo systemctl status regular-node-coap
    
    # Check CoAP endpoint
-   coap-client -m get coap://localhost:5683/health
+   coap-client -m get coap://<NODE_IP>:5683/health
    ```
 
 ### **Step 3: Test the System**
@@ -100,7 +100,7 @@ This guide explains how to deploy the CoAP-based IoT update system across your A
 2. **Verify node registration:**
    ```bash
    # Check registered nodes
-   coap-client -m get coap://localhost:5683/nodes
+   coap-client -m get coap://<MAIN_SERVER_IP>:5683/nodes
    ```
 
 ## 🔧 **Configuration**
@@ -214,17 +214,17 @@ sudo /opt/management-system/health-check-regular-node.sh
 3. **Node registration failed**
    ```bash
    # Check network connectivity
-   ping main-server-ip
+   ping <MAIN_SERVER_IP>
    
    # Check CoAP endpoint
-   coap-client -m get coap://main-server-ip:5683/health
+   coap-client -m get coap://<MAIN_SERVER_IP>:5683/health
    ```
 
 ### **Debug Commands**
 
 ```bash
 # Test CoAP connectivity
-coap-client -m get coap://localhost:5683/health
+coap-client -m get coap://<MAIN_SERVER_IP>:5683/health
 
 # Check system resources
 htop
@@ -238,8 +238,8 @@ netstat -ulpn | grep 5683
 ## 📈 **Monitoring**
 
 ### **Health Check Endpoints**
-- **Main Server**: `coap://main-server:5683/health`
-- **Regular Node**: `coap://node:5683/health`
+- **Main Server**: `coap://<MAIN_SERVER_IP>:5683/health`
+- **Regular Node**: `coap://<NODE_IP>:5683/health`
 
 ### **Resource Monitoring**
 ```bash
@@ -268,16 +268,3 @@ sudo tar -czf coap-backup-$(date +%Y%m%d).tar.gz /opt/management-system /etc/sys
 
 - [CoAP Protocol Specification](https://tools.ietf.org/html/rfc7252)
 - [aiocoap Library Documentation](https://aiocoap.readthedocs.io/)
-- [ARM Cortex A55 Documentation](https://developer.arm.com/ip-products/processors/cortex-a/cortex-a55)
-
-## 🤝 **Support**
-
-For issues and questions:
-1. Check the troubleshooting section
-2. Review system logs
-3. Verify network connectivity
-4. Check resource usage
-
-## 📄 **License**
-
-This deployment guide is part of the Central Service & Driver Management System project.

@@ -23,7 +23,7 @@ class NodeUpdateResource(resource.Resource):
         try:
             path = request.opt.uri_path
             
-            if len(path) == 2:  # /updates/{action}
+            if len(path) == 2 and path[0] == "updates":  # /updates/{action}
                 action = path[1]
                 
                 if action == "available":
@@ -67,7 +67,7 @@ class NodeUpdateResource(resource.Resource):
         try:
             path = request.opt.uri_path
             
-            if len(path) == 2:  # /updates/{update_id}
+            if len(path) == 2 and path[0] == "updates":  # /updates/{update_id}
                 update_id = path[1]
                 status = await self.update_handler.get_update_status(update_id)
                 
@@ -132,7 +132,7 @@ class SystemResource(resource.Resource):
         try:
             path = request.opt.uri_path
             
-            if len(path) == 2:  # /system/{action}
+            if len(path) == 2 and path[0] == "system":  # /system/{action}
                 action = path[1]
                 
                 if action == "restart":

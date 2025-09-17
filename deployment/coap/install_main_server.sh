@@ -59,10 +59,6 @@ echo "📚 Installing Python dependencies..."
 echo "📋 Copying application files..."
 cp -r main_server_coap/* /opt/management-system/main-server/
 
-# Fix remaining aiocoap import issues
-echo "🔧 Fixing remaining aiocoap import issues..."
-find /opt/management-system/main-server -name "*.py" -exec sed -i 's/from aiocoap.numbers import COAP_RESPONSE_CODE/# Response codes are available directly from aiocoap.numbers/' {} \;
-
 # Create startup script
 echo "🚀 Creating startup script..."
 cat > /opt/management-system/main-server/start.sh << 'EOF'

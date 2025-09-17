@@ -110,7 +110,8 @@ CPUQuota=10%
 # Environment
 Environment=PYTHONPATH=/opt/management-system/regular-node
 Environment=PYTHONUNBUFFERED=1
-Environment=MAIN_SERVER_URL=coap://$MAIN_SERVER_IP:5683
+Environment=MAIN_SERVER_HOST=192.168.100.79
+Environment=MAIN_SERVER_PORT=5683
 Environment=COAP_HOST=0.0.0.0
 Environment=COAP_PORT=5683
 

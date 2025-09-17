@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import socket
+import os
 from datetime import datetime
 from aiocoap import Context, Message, Code, resource
 # Response codes are available directly from aiocoap.numbers
@@ -85,45 +86,51 @@ class CoAPNodeAgent:
     async def register_with_main_server(self):
         """Register this node with the main server via CoAP."""
         try:
+            logger.info(f"Attempting to register with main server at: {self.main_server_url}")
+            
             # Create client context for registration
             client_context = await Context.create_client_context()
             
             # Get system information
             hostname = socket.gethostname()
-            ip_address = socket.gethostbyname(hostname)
             
-            # Get list of services (simplified)
-            services = ["node-agent", "docker", "systemd-resolved", "ssh"]
+            # Get IP address more reliably (avoid DNS resolution issues)
+            try:
+                # Try to get IP from hostname first
+                ip_address = socket.gethostbyname(hostname)
+            except socket.gaierror:
+                # If hostname resolution fails, get IP from network interface
+                import subprocess
+                try:
+                    result = subprocess.run(['hostname', '-I'], capture_output=True, text=True, timeout=5)
+                    if result.returncode == 0:
+                        ip_address = result.stdout.strip().split()[0]  # Get first IP
+                    else:
+                        ip_address = "127.0.0.1"  # Fallback
+                except:
+                    ip_address = "127.0.0.1"  # Fallback
             
-            # Get list of drivers (simplified)
-            drivers = ["usb-storage", "network", "audio"]
-            
-            # System info
-            system_info = {
-                "os": "Linux",
-                "architecture": "aarch64",  # ARM Cortex A55
-                "kernel": "5.4.0",
-                "ram_gb": 8
-            }
-            
+            # Minimal registration data to avoid CoAP message size limits
             node_info = {
                 "node_id": self.node_id,
                 "hostname": hostname,
                 "ip_address": ip_address,
                 "status": "online",
-                "last_seen": datetime.now().isoformat(),
-                "services": services,
-                "drivers": drivers,
-                "system_info": system_info
+                "last_seen": datetime.now().isoformat()
             }
+            
+            payload_data = json.dumps(node_info).encode('utf-8')
+            logger.info(f"Sending registration data: {json.dumps(node_info, indent=2)}")
+            logger.info(f"Payload size: {len(payload_data)} bytes")
             
             # Send registration via CoAP
             request = Message(
                 code=Code.POST,
-                uri=f"coap://main-server:5683/nodes",
-                payload=json.dumps(node_info).encode('utf-8')
+                uri=f"{self.main_server_url}/nodes",
+                payload=payload_data
             )
             
+            logger.info(f"Sending CoAP request to: {self.main_server_url}/nodes")
             response = await client_context.request(request).response
             
             if response.code.is_successful():
@@ -132,7 +139,7 @@ class CoAPNodeAgent:
                 logger.error(f"Failed to register with main server: {response.code}")
                 
         except Exception as e:
-            logger.error(f"Error registering with main server: {e}")
+            logger.error(f"Error registering with main server: {e} - {self.main_server_url} - {client_context}")
     
     async def periodic_health_check(self):
         """Perform periodic health checks and report to main server."""
@@ -160,10 +167,11 @@ class CoAPNodeAgent:
             
             request = Message(
                 code=Code.PUT,
-                uri=f"coap://main-server:5683/nodes/{self.node_id}/health",
+                uri=f"{self.main_server_url}/health",
                 payload=json.dumps(health_result).encode('utf-8')
             )
             
+            logger.info(f"Sending health check to: {self.main_server_url}/health")
             response = await client_context.request(request).response
             
             if response.code.is_successful():
@@ -183,7 +191,15 @@ async def main():
     
     # Generate or load node ID
     node_id = str(uuid.uuid4())
-    main_server_url = "coap://main-server:5683"
+    
+    # Get main server URL from environment variable or use default
+    main_server_host = os.getenv('MAIN_SERVER_HOST', '')
+    main_server_port = os.getenv('MAIN_SERVER_PORT', '5683')
+    main_server_url = f"coap://{main_server_host}:{main_server_port}"
+    
+    logger.info(f"Environment MAIN_SERVER_HOST: {os.getenv('MAIN_SERVER_HOST', 'NOT_SET')}")
+    logger.info(f"Environment MAIN_SERVER_PORT: {os.getenv('MAIN_SERVER_PORT', 'NOT_SET')}")
+    logger.info(f"Using main server URL: {main_server_url}")
     
     # Initialize components
     update_handler = CoAPUpdateHandler(node_id, main_server_url)

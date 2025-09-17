@@ -38,6 +38,18 @@ class UpdateRequest:
         self.package_size: int = kwargs.get('package_size', 0)
         self.checksum: str = kwargs.get('checksum', '')
         self.description: str = kwargs.get('description', '')
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            'target_nodes': self.target_nodes,
+            'update_type': self.update_type.value,
+            'package_name': self.package_name,
+            'package_version': self.package_version,
+            'package_size': self.package_size,
+            'checksum': self.checksum,
+            'description': self.description
+        }
 
 
 class UpdateJob:
@@ -52,6 +64,19 @@ class UpdateJob:
         self.completed_at: Optional[datetime] = kwargs.get('completed_at')
         self.node_statuses: Dict[str, str] = kwargs.get('node_statuses', {})
         self.error_message: Optional[str] = kwargs.get('error_message')
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            'job_id': self.job_id,
+            'update_request': self.update_request.to_dict() if self.update_request else None,
+            'status': self.status.value,
+            'created_at': self.created_at.isoformat(),
+            'started_at': self.started_at.isoformat() if self.started_at else None,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'node_statuses': self.node_statuses,
+            'error_message': self.error_message
+        }
 
 
 class NodeInfo:
@@ -92,6 +117,18 @@ class NodeUpdateStatus:
         self.completed_at: Optional[datetime] = kwargs.get('completed_at')
         self.error_message: Optional[str] = kwargs.get('error_message')
         self.health_check_passed: bool = kwargs.get('health_check_passed', False)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            'node_id': self.node_id,
+            'job_id': self.job_id,
+            'status': self.status.value,
+            'started_at': self.started_at.isoformat(),
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'error_message': self.error_message,
+            'health_check_passed': self.health_check_passed
+        }
 
 
 class HealthCheckResult:

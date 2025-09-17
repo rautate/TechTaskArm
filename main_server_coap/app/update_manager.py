@@ -21,21 +21,23 @@ class CoAPUpdateManager:
         self.active_jobs: Dict[str, UpdateJob] = {}
         self.observers = {}  # Track observers for each update
     
-    async def create_update(self, update_request: Dict[str, Any]) -> str:
+    async def create_update(self, update_request: UpdateRequest) -> str:
         """Create a new update request and return job ID."""
         try:
             job_id = str(uuid.uuid4())
             
-            # Parse update request
-            parsed_request = self._parse_update_request(update_request)
+            logger.info(f"UpdateManager.create_update: Received update_request: {update_request}")
+            logger.info(f"UpdateManager.create_update: Type of update_request: {type(update_request)}")
             
+            # Use the UpdateRequest object directly
             # Create update job
             job = UpdateJob(
                 job_id=job_id,
-                update_request=parsed_request,
-                status=UpdateStatus.PENDING,
+                update_request=update_request,
+                status=UpdateStatus.PENDING.value,  # Pass string value, not enum
                 created_at=datetime.now()
             )
+            logger.info(f"UpdateManager.create_update: Created job: {job}")
             
             # Save to database
             if not self.db.create_update_job(job):
@@ -44,7 +46,7 @@ class CoAPUpdateManager:
             # Store in active jobs
             self.active_jobs[job_id] = job
             
-            logger.info(f"Created update job {job_id} for {len(parsed_request.target_nodes)} nodes")
+            logger.info(f"Created update job {job_id} for {len(update_request.target_nodes)} nodes")
             
             return job_id
             
@@ -237,16 +239,36 @@ class CoAPUpdateManager:
     
     def _parse_update_request(self, data: Dict[str, Any]) -> UpdateRequest:
         """Parse update request from dictionary."""
-        # This would create an UpdateRequest object from the data
-        # For now, return a simple object
-        class SimpleUpdateRequest:
-            def __init__(self, data):
-                self.target_nodes = data.get('target_nodes', [])
-                self.package_name = data.get('package_name', '')
-                self.package_version = data.get('package_version', '')
-                self.package_size = data.get('package_size', 0)
-                self.checksum = data.get('checksum', '')
-                self.update_type = data.get('update_type', 'package')
-                self.description = data.get('description', '')
+        from models import UpdateRequest, UpdateType
         
-        return SimpleUpdateRequest(data)
+        logger.info(f"UpdateManager._parse_update_request: Received data: {data}")
+        logger.info(f"UpdateManager._parse_update_request: Type of data: {type(data)}")
+        
+        # Map update_type string to UpdateType enum
+        update_type_str = data.get('update_type', 'package')
+        logger.info(f"UpdateManager._parse_update_request: update_type_str: {update_type_str}")
+        
+        if update_type_str == 'service':
+            update_type = UpdateType.SERVICE
+        elif update_type_str == 'driver':
+            update_type = UpdateType.DRIVER
+        else:
+            update_type = UpdateType.PACKAGE
+        
+        logger.info(f"UpdateManager._parse_update_request: update_type: {update_type}")
+        
+        # Create proper UpdateRequest object
+        result = UpdateRequest(
+            target_nodes=data.get('target_nodes', []),
+            update_type=update_type,  # Pass the enum object, not the string value
+            package_name=data.get('package_name', ''),
+            package_version=data.get('package_version', ''),
+            package_size=data.get('package_size', 0),
+            checksum=data.get('checksum', ''),
+            description=data.get('description', '')
+        )
+        
+        logger.info(f"UpdateManager._parse_update_request: Created UpdateRequest: {result}")
+        logger.info(f"UpdateManager._parse_update_request: Type of result: {type(result)}")
+        
+        return result

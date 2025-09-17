@@ -462,7 +462,7 @@ class CoAPUpdateHandler:
             
             request = Message(
                 code=Code.POST,
-                uri=f"coap://main-server:5683/{path}",
+                uri=f"{self.main_server_url}/{path}",
                 payload=json.dumps(data).encode('utf-8')
             )
             
